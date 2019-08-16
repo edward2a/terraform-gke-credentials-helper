@@ -2,6 +2,7 @@ package main
 
 
 import (
+  //"bytes"
   "crypto"
   "crypto/rand"
   "crypto/rsa"
@@ -10,7 +11,10 @@ import (
   "encoding/base64"
   "encoding/json"
   "encoding/pem"
+  "io/ioutil"
   "log"
+  "net/http"
+  "net/url"
   "os"
   "time"
 )
@@ -61,6 +65,19 @@ type Jwt struct {
 }
 
 
+func byteAppender(inputs ...[]byte) *[]byte {
+  var output []byte
+
+  for _, arr := range inputs {
+    for _, v := range arr {
+      output = append(output, v)
+    }
+  }
+
+  return &output
+}
+
+
 func loadGoogleCredentials() *GoogleCloudKey {
 
   data := os.Getenv("GOOGLE_CLOUD_KEY")
@@ -97,7 +114,7 @@ func signJwtRS256(jwt *Jwt, key *rsa.PrivateKey) {
   if err != nil { log.Fatalln(err) }
 
   jwt.Signature = signature
-  jwt.b64.Signature = []byte(base64.RawStdEncoding.EncodeToString(signature))
+  jwt.b64.Signature = []byte(base64.RawURLEncoding.EncodeToString(signature))
 }
 
 
@@ -124,12 +141,44 @@ func createJwt(key *GoogleCloudKey) *Jwt {
   json_p, err := json.Marshal(jwt.Payload)
   if err != nil { log.Fatalln(err) }
 
-  jwt.b64.Header = []byte(base64.RawStdEncoding.EncodeToString(json_h))
-  jwt.b64.Payload = []byte(base64.RawStdEncoding.EncodeToString(json_p))
+  jwt.b64.Header = []byte(base64.RawURLEncoding.EncodeToString(json_h))
+  jwt.b64.Payload = []byte(base64.RawURLEncoding.EncodeToString(json_p))
 
   return jwt
 }
 
+
+func requestOauth2Token(jwt *Jwt) {
+  separator := []byte(".")
+  //body_p1 := "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion="
+  assertion := byteAppender(jwt.b64.Header, separator, jwt.b64.Payload, separator, jwt.b64.Signature)
+  //body_reader := bytes.NewReader(*body)
+
+  /*
+  resp := &http.Client{}
+  //req, err := http.NewRequest("POST", "https://oauth2.googleapis.com/token", body_reader)
+  req, err := http.NewRequest("POST", "https://oauth2.googleapis.com/token", nil)
+  req.Form := url.Values{
+    "grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
+    "assertion":  {assertion}
+  }*/
+
+  resp, err := http.PostForm("https://oauth2.googleapis.com/token", url.Values{
+    "grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
+    "assertion":  {string(*assertion)},
+  })
+  if err != nil { log.Fatalln(err) }
+
+  defer resp.Body.Close()
+  resp_body, err := ioutil.ReadAll(resp.Body)
+  if err != nil { log.Fatalln(err) }
+
+  if resp.StatusCode != 200 {
+    log.Fatalln(string(resp_body))
+  }
+
+  log.Println(string(resp_body))
+}
 
 func main() {
 
@@ -155,4 +204,7 @@ func main() {
   */
   /*log.Println(google_key)
   log.Println(jwt)*/
+  log.Println(string(jwt.b64.Header), string(jwt.b64.Payload), string(jwt.b64.Signature))
+
+  requestOauth2Token(jwt)
 }
