@@ -7,7 +7,7 @@ import (
   "crypto/rsa"
   "crypto/sha256"
   "crypto/x509"
-  //"encoding/base64"
+  "encoding/base64"
   "encoding/json"
   "encoding/pem"
   "log"
@@ -46,10 +46,18 @@ type JwtClaims struct {
 }
 
 
+type JwtB64 struct {
+  Header    []byte
+  Payload   []byte
+  Signature []byte
+}
+
+
 type Jwt struct {
   Header    JwtHeader `json:"header"`
   Payload   JwtClaims `json:"payload"`
-  Signature string    `json:"signature"`
+  Signature []byte    `json:"signature"`
+  b64       JwtB64
 }
 
 
@@ -83,21 +91,19 @@ func parsePem(key *GoogleCloudKey) *rsa.PrivateKey {
 
 
 func signJwtRS256(jwt *Jwt, key *rsa.PrivateKey) {
-  var header []byte
-  var payload []byte
-  header, _ = json.Marshal(jwt.Header)
-  payload, _ = json.Marshal(jwt.Payload)
+  digest := sha256.Sum256([]byte(string(jwt.b64.Header) + "." + string(jwt.b64.Payload)))
 
-  s_string := sha256.Sum256([]byte(string(header) + "." + string(payload)))
-  signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, s_string[:])
+  signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, digest[:])
   if err != nil { log.Fatalln(err) }
-  jwt.Signature = string(signature)
+
+  jwt.Signature = signature
+  jwt.b64.Signature = []byte(base64.RawStdEncoding.EncodeToString(signature))
 }
 
 
 func createJwt(key *GoogleCloudKey) *Jwt {
   t := time.Now().Unix()
-  return &Jwt{
+  jwt := &Jwt{
     Header: JwtHeader{
       Alg:  "RS256",
       Kid:  key.PrivateKeyId,
@@ -111,6 +117,17 @@ func createJwt(key *GoogleCloudKey) *Jwt {
       Scope: "https://www.googleapis.com/auth/cloud-platform",
     },
   }
+
+  json_h, err := json.Marshal(jwt.Header)
+  if err != nil { log.Fatalln(err) }
+
+  json_p, err := json.Marshal(jwt.Payload)
+  if err != nil { log.Fatalln(err) }
+
+  jwt.b64.Header = []byte(base64.RawStdEncoding.EncodeToString(json_h))
+  jwt.b64.Payload = []byte(base64.RawStdEncoding.EncodeToString(json_p))
+
+  return jwt
 }
 
 
@@ -136,6 +153,6 @@ func main() {
   //log.Println(string(h))
   //log.Println(string(header), string(payload))
   */
-  log.Println(google_key)
-  log.Println(jwt)
+  /*log.Println(google_key)
+  log.Println(jwt)*/
 }
