@@ -29,11 +29,13 @@ type GoogleCloudKey struct {
   ClientX509CertUrl       string `json:"client_x509_cert_url"`
 }
 
+
 type JwtHeader struct {
   Alg string `json:"alg"`
   Typ string `json:"typ"`
   Kid string `json:"kid"`
 }
+
 
 type JwtClaims struct {
   Iss   string  `json:"iss"`
@@ -43,16 +45,17 @@ type JwtClaims struct {
   Exp   int64   `json:"exp"`
 }
 
+
 type Jwt struct {
   Header    JwtHeader `json:"header"`
   Payload   JwtClaims `json:"payload"`
   Signature string    `json:"signature"`
 }
 
+
 func loadGoogleCredentials() *GoogleCloudKey {
 
   data := os.Getenv("GOOGLE_CLOUD_KEY")
-  //key_data := make(map[string]interface{})
 
   var key GoogleCloudKey
   if data != "" {
@@ -62,22 +65,9 @@ func loadGoogleCredentials() *GoogleCloudKey {
     log.Fatalln("ERROR: Variable GOOGLE_CLOUD_KEY not present in environment or empty")
   }
 
-/*
-  key := &GoogleCloudKey{
-    Type:                     key_data["type"].(string),
-    ProjectId:                key_data["project_id"].(string),
-    PrivateKeyId:             key_data["private_key_id"].(string),
-    PrivateKey:               key_data["private_key"].(string),
-    ClientEmail:              key_data["client_email"].(string),
-    ClientId:                 key_data["client_id"].(string),
-    AuthUri:                  key_data["auth_uri"].(string),
-    TokenUrl:                 key_data["token_uri"].(string),
-    AuthProviderX509CertUrl:  key_data["auth_provider_x509_cert_url"].(string),
-    ClientX509CertUrl:        key_data["client_x509_cert_url"].(string),
-  }
-*/
   return &key
 }
+
 
 func parsePem(key *GoogleCloudKey) *rsa.PrivateKey {
   var k interface{}
@@ -91,6 +81,7 @@ func parsePem(key *GoogleCloudKey) *rsa.PrivateKey {
   return k.(*rsa.PrivateKey)
 }
 
+
 func signJwtRS256(jwt *Jwt, key *rsa.PrivateKey) {
   var header []byte
   var payload []byte
@@ -102,6 +93,7 @@ func signJwtRS256(jwt *Jwt, key *rsa.PrivateKey) {
   if err != nil { log.Fatalln(err) }
   jwt.Signature = string(signature)
 }
+
 
 func createJwt(key *GoogleCloudKey) *Jwt {
   t := time.Now().Unix()
@@ -120,6 +112,7 @@ func createJwt(key *GoogleCloudKey) *Jwt {
     },
   }
 }
+
 
 func main() {
 
