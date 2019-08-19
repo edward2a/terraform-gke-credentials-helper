@@ -10,6 +10,7 @@ import (
   "encoding/base64"
   "encoding/json"
   "encoding/pem"
+  "fmt"
   "io/ioutil"
   "log"
   "net/http"
@@ -66,62 +67,62 @@ type Jwt struct {
 
 // BEGIN - KubeCtl config file structure definition
 type KubeClusterInfo struct {
-  CertificateAuthorityData  string  `yaml:certificate-authority-data`
-  Server                    string  `yaml:server`
+  CertificateAuthorityData  string  `yaml:"certificate-authority-data"`
+  Server                    string  `yaml:"server"`
 }
 
 
 type KubeClusterConfig struct {
-  Name    string          `yaml:name`
-  Cluster KubeClusterInfo `yaml:cluster`
+  Name    string          `yaml:"name"`
+  Cluster KubeClusterInfo `yaml:"cluster"`
 }
 
 
 type KubeContextInfo struct {
-  Cluster string  `yaml:cluster`
-  User    string  `yaml:user`
+  Cluster string  `yaml:"cluster"`
+  User    string  `yaml:"user"`
 }
 
 
 type KubeContextConfig struct {
-  Name    string          `yaml:name`
-  Context KubeContextInfo `yaml:context`
+  Name    string          `yaml:"name"`
+  Context KubeContextInfo `yaml:"context"`
 }
 
 
 type KubeAuthProviderInfo struct {
-  CmdArgs   string `yaml:cmd-args`
-  CmdPath   string `yaml:cmd-path`
-  ExpiryKey string `yaml:expiry-key`
-  TokenKey  string `yaml:token-ley`
+  CmdArgs   string `yaml:"cmd-args"`
+  CmdPath   string `yaml:"cmd-path"`
+  ExpiryKey string `yaml:"expiry-key"`
+  TokenKey  string `yaml:"token-ley"`
 }
 
 
 type KubeAuthProviderConfig struct {
-  Name    string                `yaml:name`
-  Config  KubeAuthProviderInfo  `yaml:config`
+  Name    string                `yaml:"name"`
+  Config  KubeAuthProviderInfo  `yaml:"config"`
 }
 
 
 type KubeUserInfo struct {
-  AuthProvider  KubeAuthProviderConfig `yaml:auth-provider`
+  AuthProvider  KubeAuthProviderConfig `yaml:"auth-provider"`
 }
 
 
 type KubeUserConfig struct {
-  Name  string        `yaml:name`
-  User  KubeUserInfo  `yaml:user`
+  Name  string        `yaml:"name"`
+  User  KubeUserInfo  `yaml:"user"`
 }
 
 
 type KubeCtlConfig struct {
-  ApiVersion      string              `yaml:apiVersion`
-  Clusters        []KubeClusterConfig `yaml:clusters`
-  Contexts        []KubeContextConfig `yaml:contexts`
-  CurrentContext  string              `yaml:current-context`
-  Kind            string              `yaml:kind`
+  ApiVersion      string              `yaml:"apiVersion"`
+  Clusters        []KubeClusterConfig `yaml:"clusters"`
+  Contexts        []KubeContextConfig `yaml:"contexts"`
+  CurrentContext  string              `yaml:"current-context"`
+  Kind            string              `yaml:"kind"`
   //Preferences     interface{}         `yaml:preferences`
-  Users           []KubeUserConfig    `yml:users`
+  Users           []KubeUserConfig    `yml:"users"`
 }
 // END - KubeCtl config file structure definition
 
@@ -209,7 +210,9 @@ func createJwt(key *GoogleCloudKey) *Jwt {
 }
 
 
-func requestOauth2Token(jwt *Jwt) {
+func requestOauth2Token(jwt *Jwt) Oauth2Token {
+  var token Oauth2Token
+
   separator := []byte(".")
   assertion := byteAppender(jwt.b64.Header, separator, jwt.b64.Payload, separator, jwt.b64.Signature)
 
@@ -227,7 +230,53 @@ func requestOauth2Token(jwt *Jwt) {
     log.Fatalln(string(resp_body))
   }
 
-  log.Println(string(resp_body))
+  err = json.Unmarshal(resp_body, &token)
+  if err != nil { log.Fatalln(err) }
+
+  return token
+}
+
+/*
+func getKubeClusterInfo() {
+  // Request URL for clustr describe (projectName, location, clusterName)
+  request_url := "https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s?alt=json"
+  client := &http.Client{}
+  req, err := http.NewRequest("GET", request_url,
+}
+*/
+
+type Oauth2Token struct {
+  AccessToken string  `json:"access_token"`
+  ExpiresIn   int32   `json:"expires_in"`
+  TokenType   string  `json:"token_type"`
+}
+
+type KubeExecCredentialStatus struct {
+  Token string  `json:token`
+  ExpirationTimeStamp string  `json:"expirationTimeStamp,omitempty"`
+}
+
+type KubeExecCredential struct {
+  ApiVersion  string                    `json:"apiVersion"`
+  Kind        string                    `json:"kind"`
+  Status      KubeExecCredentialStatus  `json:"status"`
+}
+
+func printKubeExecCredential(token string, exp int64) {
+  credentials := KubeExecCredential{
+    ApiVersion: "client.authentication.k8s.io/v1beta1",
+    Kind: "ExecCredential",
+  }
+
+  credentials.Status = KubeExecCredentialStatus{
+      Token: token,
+      ExpirationTimeStamp: time.Unix(exp, 0).Format(time.RFC3339),
+    }
+
+  creds_out, err := json.MarshalIndent(credentials, "", "  ")
+  if err != nil { log.Fatalln(err) }
+
+  fmt.Printf(string(creds_out))
 }
 
 func main() {
@@ -237,7 +286,6 @@ func main() {
   jwt := createJwt(google_key)
   signJwtRS256(jwt, parsePem(google_key))
 
-  log.Println(string(jwt.b64.Header), string(jwt.b64.Payload), string(jwt.b64.Signature))
-
-  requestOauth2Token(jwt)
+  token := requestOauth2Token(jwt)
+  printKubeExecCredential(token.AccessToken, jwt.Payload.Exp)
 }
