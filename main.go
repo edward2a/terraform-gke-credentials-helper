@@ -252,7 +252,7 @@ type Oauth2Token struct {
 }
 
 type KubeExecCredentialStatus struct {
-  Token string  `json:token`
+  Token string  `json:"token"`
   ExpirationTimeStamp string  `json:"expirationTimeStamp,omitempty"`
 }
 
