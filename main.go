@@ -65,6 +65,68 @@ type Jwt struct {
 }
 
 
+// BEGIN - KubeCtl config file structure definition
+type KubeClusterInfo struct {
+  CertificateAuthorityData  string  `yaml:certificate-authority-data`
+  Server                    string  `yaml:server`
+}
+
+
+type KubeClusterConfig struct {
+  Name    string          `yaml:name`
+  Cluster KubeClusterInfo `yaml:cluster`
+}
+
+
+type KubeContextInfo struct {
+  Cluster string  `yaml:cluster`
+  User    string  `yaml:user`
+}
+
+
+type KubeContextConfig struct {
+  Name    string          `yaml:name`
+  Context KubeContextInfo `yaml:context`
+}
+
+
+type KubeAuthProviderInfo struct {
+  CmdArgs   string `yaml:cmd-args`
+  CmdPath   string `yaml:cmd-path`
+  ExpiryKey string `yaml:expiry-key`
+  TokenKey  string `yaml:token-ley`
+}
+
+
+type KubeAuthProviderConfig struct {
+  Name    string                `yaml:name`
+  Config  KubeAuthProviderInfo  `yaml:config`
+}
+
+
+type KubeUserInfo struct {
+  AuthProvider  KubeAuthProviderConfig `yaml:auth-provider`
+}
+
+
+type KubeUserConfig struct {
+  Name  string        `yaml:name`
+  User  KubeUserInfo  `yaml:user`
+}
+
+
+type KubeCtlConfig struct {
+  ApiVersion      string              `yaml:apiVersion`
+  Clusters        []KubeClusterConfig `yaml:clusters`
+  Contexts        []KubeContextConfig `yaml:contexts`
+  CurrentContext  string              `yaml:current-context`
+  Kind            string              `yaml:kind`
+  //Preferences     interface{}         `yaml:preferences`
+  Users           []KubeUserConfig    `yml:users`
+}
+// END - KubeCtl config file structure definition
+
+
 func byteAppender(inputs ...[]byte) *[]byte {
   var output []byte
 
