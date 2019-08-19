@@ -65,66 +65,24 @@ type Jwt struct {
 }
 
 
-// BEGIN - KubeCtl config file structure definition
-type KubeClusterInfo struct {
-  CertificateAuthorityData  string  `yaml:"certificate-authority-data"`
-  Server                    string  `yaml:"server"`
+type Oauth2Token struct {
+  AccessToken string  `json:"access_token"`
+  ExpiresIn   int32   `json:"expires_in"`
+  TokenType   string  `json:"token_type"`
 }
 
 
-type KubeClusterConfig struct {
-  Name    string          `yaml:"name"`
-  Cluster KubeClusterInfo `yaml:"cluster"`
+type KubeExecCredentialStatus struct {
+  Token string  `json:"token"`
+  ExpirationTimeStamp string  `json:"expirationTimeStamp,omitempty"`
 }
 
 
-type KubeContextInfo struct {
-  Cluster string  `yaml:"cluster"`
-  User    string  `yaml:"user"`
+type KubeExecCredential struct {
+  ApiVersion  string                    `json:"apiVersion"`
+  Kind        string                    `json:"kind"`
+  Status      KubeExecCredentialStatus  `json:"status"`
 }
-
-
-type KubeContextConfig struct {
-  Name    string          `yaml:"name"`
-  Context KubeContextInfo `yaml:"context"`
-}
-
-
-type KubeAuthProviderInfo struct {
-  CmdArgs   string `yaml:"cmd-args"`
-  CmdPath   string `yaml:"cmd-path"`
-  ExpiryKey string `yaml:"expiry-key"`
-  TokenKey  string `yaml:"token-ley"`
-}
-
-
-type KubeAuthProviderConfig struct {
-  Name    string                `yaml:"name"`
-  Config  KubeAuthProviderInfo  `yaml:"config"`
-}
-
-
-type KubeUserInfo struct {
-  AuthProvider  KubeAuthProviderConfig `yaml:"auth-provider"`
-}
-
-
-type KubeUserConfig struct {
-  Name  string        `yaml:"name"`
-  User  KubeUserInfo  `yaml:"user"`
-}
-
-
-type KubeCtlConfig struct {
-  ApiVersion      string              `yaml:"apiVersion"`
-  Clusters        []KubeClusterConfig `yaml:"clusters"`
-  Contexts        []KubeContextConfig `yaml:"contexts"`
-  CurrentContext  string              `yaml:"current-context"`
-  Kind            string              `yaml:"kind"`
-  //Preferences     interface{}         `yaml:preferences`
-  Users           []KubeUserConfig    `yml:"users"`
-}
-// END - KubeCtl config file structure definition
 
 
 func byteAppender(inputs ...[]byte) *[]byte {
@@ -236,31 +194,6 @@ func requestOauth2Token(jwt *Jwt) Oauth2Token {
   return token
 }
 
-/*
-func getKubeClusterInfo() {
-  // Request URL for clustr describe (projectName, location, clusterName)
-  request_url := "https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s?alt=json"
-  client := &http.Client{}
-  req, err := http.NewRequest("GET", request_url,
-}
-*/
-
-type Oauth2Token struct {
-  AccessToken string  `json:"access_token"`
-  ExpiresIn   int32   `json:"expires_in"`
-  TokenType   string  `json:"token_type"`
-}
-
-type KubeExecCredentialStatus struct {
-  Token string  `json:"token"`
-  ExpirationTimeStamp string  `json:"expirationTimeStamp,omitempty"`
-}
-
-type KubeExecCredential struct {
-  ApiVersion  string                    `json:"apiVersion"`
-  Kind        string                    `json:"kind"`
-  Status      KubeExecCredentialStatus  `json:"status"`
-}
 
 func printKubeExecCredential(token string, exp int64) {
   credentials := KubeExecCredential{
@@ -278,6 +211,7 @@ func printKubeExecCredential(token string, exp int64) {
 
   fmt.Printf(string(creds_out))
 }
+
 
 func main() {
 
