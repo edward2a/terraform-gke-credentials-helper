@@ -2,7 +2,6 @@ package main
 
 
 import (
-  //"bytes"
   "crypto"
   "crypto/rand"
   "crypto/rsa"
@@ -212,18 +211,7 @@ func createJwt(key *GoogleCloudKey) *Jwt {
 
 func requestOauth2Token(jwt *Jwt) {
   separator := []byte(".")
-  //body_p1 := "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion="
   assertion := byteAppender(jwt.b64.Header, separator, jwt.b64.Payload, separator, jwt.b64.Signature)
-  //body_reader := bytes.NewReader(*body)
-
-  /*
-  resp := &http.Client{}
-  //req, err := http.NewRequest("POST", "https://oauth2.googleapis.com/token", body_reader)
-  req, err := http.NewRequest("POST", "https://oauth2.googleapis.com/token", nil)
-  req.Form := url.Values{
-    "grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
-    "assertion":  {assertion}
-  }*/
 
   resp, err := http.PostForm("https://oauth2.googleapis.com/token", url.Values{
     "grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
@@ -245,27 +233,10 @@ func requestOauth2Token(jwt *Jwt) {
 func main() {
 
   google_key := loadGoogleCredentials()
-  //log.Printf("Key: %+v", google_key)
 
   jwt := createJwt(google_key)
   signJwtRS256(jwt, parsePem(google_key))
 
-  /*
-  var header []byte
-  var payload []byte
-  var err error
-  header, err = json.Marshal(jwt.Header)
-  if err != nil { log.Fatalln(err) }
-  payload, err = json.Marshal(jwt.Payload)
-  if err != nil { log.Fatalln(err) }
-
-
-  //h, _ := json.Marshal(jwt)
-  //log.Println(string(h))
-  //log.Println(string(header), string(payload))
-  */
-  /*log.Println(google_key)
-  log.Println(jwt)*/
   log.Println(string(jwt.b64.Header), string(jwt.b64.Payload), string(jwt.b64.Signature))
 
   requestOauth2Token(jwt)
