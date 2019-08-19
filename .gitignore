@@ -13,3 +13,6 @@
 
 # vim
 *.swp
+
+# binary
+terraform-kubernetes-credentials-helper
