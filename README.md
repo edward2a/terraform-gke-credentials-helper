@@ -3,6 +3,9 @@ This is a small helper allow terraform-provider-kubernetes to operate without gc
 
 There are no external dependencies other than golang stdlib bundle. This is a design decision.
 
+## Workflow
+![Workflow](./tf-gke-credentials-helper.png)
+
 ## Runtime Dependencies
 A variable named GOOGLE_CLOUD_KEY is used by the provider. This variable must be a Google user/SA JSON key.
 
