@@ -14,9 +14,9 @@ An easy way to declare such variable is to use `export GOOGLE_CLOUD_KEY=$(cat ${
 Alternatively, if the credentials for GCP are provided as a variable to the terraform-google-provider, the same variable can be presented in the terraform-kubernetes-provider exec command as in the usage sample.
 
 ## Usage
-The binary has to be available in the same runtime as terraform.
-A variable
-The sample below assumes the terraform-kubernetes-provider is being used in the same terraform declaration that creates the cluster being configured. Adjust settings as required.
+The binary has to be available in the same runtime as terraform.<br />
+The sample below assumes the terraform-kubernetes-provider is being used in the same terraform declaration that creates the cluster being configured.<br />
+Adjust settings as required.
 ```terraform
 provider kubernetes {
   host = "${google_container_cluster.gke1.endpoint}"
